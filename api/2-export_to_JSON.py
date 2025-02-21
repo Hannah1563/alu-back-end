@@ -1,61 +1,36 @@
 #!/usr/bin/python3
-"""
-Script to export employee task data to JSON format
-"""
+"""Script that gets user data (Todo list) from API
+and then export the result to csv file. """
+
 import json
 import requests
 import sys
 
 
-def export_to_json(employee_id):
-    """Export employee tasks to JSON file"""
-    # Base URL for the API
-    base_url = "https://jsonplaceholder.typicode.com"
+def main():
+    """main function"""
+    user_id = int(sys.argv[1])
+    todo_url = 'https://jsonplaceholder.typicode.com/todos'
+    user_url = 'https://jsonplaceholder.typicode.com/users/{}'.format(user_id)
 
-    # Get employee information
-    user_response = requests.get(f"{base_url}/users/{employee_id}")
-    if user_response.status_code != 200:
-        print(f"Employee with ID {employee_id} not found")
-        sys.exit(1)
+    response = requests.get(todo_url)
+    user_name = requests.get(user_url).json().get('username')
+    user_data = []
+    output = {user_id: user_data}
 
-    user = user_response.json()
-    username = user.get('username')
-
-    # Get tasks for the employee
-    todos_response = requests.get(f"{base_url}/users/{employee_id}/todos")
-    if todos_response.status_code != 200:
-        print(f"Could not fetch tasks for employee {employee_id}")
-        sys.exit(1)
-
-    todos = todos_response.json()
-
-    # Format tasks according to requirements
-    tasks_list = [
-        {
-            "task": todo.get('title'),
-            "completed": todo.get('completed'),
-            "username": username
-        }
-        for todo in todos
-    ]
-
-    # Create JSON object with required format
-    json_data = {str(employee_id): tasks_list}
-
-    # Write to file
-    filename = f"{employee_id}.json"
-    with open(filename, 'w') as jsonfile:
-        json.dump(json_data, jsonfile)
+    for todo in response.json():
+        if todo.get('userId') == user_id:
+            user_data.append(
+                {
+                    "task": todo.get('title'),
+                    "completed": todo.get('completed'),
+                    "username": user_name,
+                })
+    print(output)
+    file_name = "{}.json".format(user_id)
+    with open(file_name, 'w') as file:
+        json.dump(output, file)
 
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python3 2-export_to_JSON.py <employee_id>")
-        sys.exit(1)
-
-    try:
-        employee_id = int(sys.argv[1])
-        export_to_json(employee_id)
-    except ValueError:
-        print("Employee ID must be an integer")
-        sys.exit(1)
+if __name__ == '__main__':
+    main()
