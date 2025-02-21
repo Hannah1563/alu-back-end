@@ -1,37 +1,52 @@
 #!/usr/bin/python3
-"""Script that gets user data (Todo list) from API
-and then export the result to csv file. """
-
+"""
+Python script that exports data in the JSON format
+"""
 import json
 import requests
 
 
-def main():
-    """main function"""
-    todo_url = 'https://jsonplaceholder.typicode.com/todos'
+def get_all_users():
+    """
+    Get the list of all users
+    """
+    url = "https://jsonplaceholder.typicode.com/users"
+    response = requests.get(url)
+    return response.json()
 
-    response = requests.get(todo_url)
 
-    output = {}
+def get_user_todos(user_id):
+    """
+    Get the TODO list for a given user ID
+    """
+    url = "https://jsonplaceholder.typicode.com/todos"
+    response = requests.get(url, params={"userId": user_id})
+    return response.json()
 
-    for todo in response.json():
-        user_id = todo.get('userId')
-        if user_id not in output.keys():
-            output[user_id] = []
-            user_url = 'https://jsonplaceholder.typicode.com/users/{}'.format(
-                user_id)
-            user_name = requests.get(user_url).json().get('username')
 
-        output[user_id].append(
+def export_all_todos_to_json(users):
+    """
+    Export all users' TODO lists to a JSON file
+    """
+    data = {
+        user["id"]: [
             {
-                "username": user_name,
-                "task": todo.get('title'),
-                "completed": todo.get('completed')
-            })
+                "task": todo["title"],
+                "completed": todo["completed"],
+                "username": user["username"]
+            } for todo in get_user_todos(user["id"])
+        ] for user in users
+    }
+    with open("todo_all_employees.json", "w") as jsonfile:
+        json.dump(data, jsonfile)
 
-    with open("todo_all_employees.json", 'w') as file:
-        json.dump(output, file)
 
+def main():
+    """
+    Main function to fetch users and their TODO lists, then export to JSON
+    """
+    users = get_all_users()
+    export_all_todos_to_json(users)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
